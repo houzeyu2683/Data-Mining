@@ -56,17 +56,17 @@ class FPTree():
                     root.children[item].val += 1#否则，计数加1
                 root = root.children[item]#往下走一步
                 
-                # #根据这个root创建链表
-                # if item in self.root.nodelink.keys():#如果这个item在nodelink中已经存在了
-                #     if root.visit == 0:#如果这个点没有被访问过
-                #         self.root.nodelink1[item].next = root
-                #         self.root.nodelink1[item] = self.root.nodelink1[item].next
-                #         root.visit = 1#被访问了
+                #根据这个root创建链表
+                if item in self.root.nodelink.keys():#如果这个item在nodelink中已经存在了
+                    if root.visit == 0:#如果这个点没有被访问过
+                        self.root.nodelink1[item].next = root
+                        self.root.nodelink1[item] = self.root.nodelink1[item].next
+                        root.visit = 1#被访问了
                     
-                # else:#如果这个item在nodelink中不存在
-                #     self.root.nodelink[item] = root
-                #     self.root.nodelink1[item] = root
-                #     root.visit = 1
+                else:#如果这个item在nodelink中不存在
+                    self.root.nodelink[item] = root
+                    self.root.nodelink1[item] = root
+                    root.visit = 1
         print('树建立完成')
         return self.root
         
@@ -207,7 +207,8 @@ tr = FPTree()
 tr.BuildTree(data)
 tr.root.children['b'].children['a'].next
  
-tr.root.children['b'].children
+tr.root.children['b'].next
+
                                    
        
 obj = FPTree()
