@@ -81,12 +81,13 @@ class data:
 
 class node:
 
-    def __init__(self, count=0, name="", children={}, father=None):
+    def __init__(self, count=0, name="", children={}, father=None, status=0):
 
         self.count = count
         self.name = name
         self.children = children
         self.father = father
+        self.status = status
         return
 
     def track(self):
@@ -120,14 +121,14 @@ class plant:
     def build(self):
 
         sequence = self.sequence
-        tree = node(count=None, name='root', children={}, father=None)
+        tree = node(count=None, name='root', children={}, father=None, status=0)
         for row in sequence:
             
             branch = tree
             for name in sequence[row]:
                 
                 if(branch.children.get(name)): branch.children.get(name).count += 1
-                else: branch.children[name] = node(count=1, name=name, children={}, father=branch)
+                else: branch.children[name] = node(count=1, name=name, children={}, father=branch, status=0)
                 branch = branch.children[name]
                 continue
             
@@ -136,112 +137,127 @@ class plant:
         self.tree = tree
         return
 
-    def connect(self, children, first=True):
+    ##  Tree node link.
+    def connect(self, node, first=True):
 
         if(first): self.connection = {}
-        if(children!={}):
+        if(node.children!={}):
             
-            for (_, item) in children.items():
+            for (_, item) in node.children.items():
 
                 exist = self.connection.get(item.name)
                 if(not exist): self.connection[item.name] = []
                 self.connection[item.name] += [item]
                 pass
                 
-                self.connect(children=item.children, first=False)
+                self.connect(node=item, first=False)
                 continue
 
             pass
 
         return
 
-    pass
+    ##  get head table with sort.
+    def update(self, what='head'):
 
-class pattern:
+        if(what=='head'):
 
-    def __init__(self, connection, threshold):
-
-        self.connection = connection
-        self.threshold = threshold
-        pass
-    
-    def grow(self, item=38, limit=None):
-
-        base = []
-        # print(item)
-        for l in connection[item]:
-
-            l.track()
-            if(len(l.trace)<3): continue
-            b = [n.name for n in l.trace[1:-1]] * l.trace[-1].count
-            base += b
-            continue
-        
-        unit = {}
-        threshold = self.threshold
-        for i in set(base):
-
-            if(base.count(i)>threshold): unit.update({i:base.count(i)})
-            
-            continue
-
-        base = [set([i]) for i in unit.keys()]
-        group = []
-        frequency = {}
-        limit = limit if(limit) else len(base)
-        for i in range(limit):
-
-            if(i==0): 
+            assert self.connection, 'connection not found'
+            length = len(self.connection.keys())
+            item, count = [], []
+            for k in self.connection.keys():
                 
-                group += base.copy()
-                frequency.update({",".join([str(k)]+[str(item)]):v for k,v in unit.items()})
-                pass
+                item += [k]
+                count += [sum([n.count for n in self.connection[k]])]
+                continue
+            
+            order = sorted(range(length), key=lambda k: count[k])
+            item = [item[o:o+1][0] for o in order]
+            count = [count[o:o+1][0] for o in order]
+            head = {'item': item, "count":count}
+            self.head = head
+            pass
 
-            else:
+        return
 
-                # group = [set.union(l,r) for l in base for r in group]
-                pool = group.copy()
-                # print(pool)
-                for b in base:
+    def capture(self, node=37):
 
-                    # pool = [p for p in pool if(p.intersection(b)==set())]
-                    for g in pool:
-                        
-                        u = set.union(b, g)
-                        if(u not in group): 
-                            
-                            group += [u]
-                            f = {",".join([str(i) for i in u]+[str(item)]): min([unit.get(v) for v in u])}
-                            frequency.update(f)
-                            pass
+        connection = self.connection
+        for n in connection[node]: 
 
-                        continue
+            c = n.count
+            n.children = {}
+            while(n.name != 'root'): 
 
-                    continue
+                if(n.status==0): 
+                    
+                    n.count = c
+                    n.status = 1
+                    pass
 
-                pass
+                else: 
+                    
+                    n.count += c
+                    pass
+
+                n = n.father
+                continue
+        
+        ##  Remove the node without status=0(not visit)
+        for k in connection: 
+
+            for n in connection[k]:
+
+                name = None
+                while(n.status==0):
+
+                    name = n.name 
+                    n = n.father
+                    if(not n): continue
+                    break
+
+                if(not n or not name): break
+
+                if(n.children.get(name)): n.children.pop(name)
+                continue
 
             continue
-        
 
-        return(frequency)
+        self.branch = self.tree
+        return
 
+    def reset(self):
+
+        self.build()
+        self.connect(node=self.tree, first=True)
+        self.sort()
+        self.branch = None
+        return
+    
     pass
 
 threshold=300
 d = data(path='./inputs/2022-DM-release-testdata-2.data')
 d.read()
+d.prepare()
 d.length
-d.prepare(threshold=threshold)
-d.head
+
 p = plant(sequence=d.sequence)
 p.build()
-import pprint
-pprint.pprint(d.head)
+p.connect(p.tree)
+p.sort()
+p.head
+p.tree.children[14].children
 
-p.connect(children=p.tree.children, first=True)
-connection = p.connection
-connection.keys()
-connection[30]
-pa = pattern(connection=connection, threshold=threshold)
+p.capture(node=18)
+p.branch.children
+p.connect(node=p.branch)
+p.connection
+p.sort()
+p.head
 
+p.branch.children[18].children
+p.branch.children[14].children
+p.reset()
+p.tree.children
+p.tree
