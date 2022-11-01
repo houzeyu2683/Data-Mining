@@ -24,6 +24,7 @@ class data:
         
             pass
         
+        self.length = len(dictionary.keys())
         self.dictionary = dictionary
         return
 
@@ -51,7 +52,7 @@ class data:
         order = sorted(index, key=lambda k: count[k], reverse = True)
         item = [list(item[o])[0] for o in order]
         count = [count[o] for o in order]
-        header = {"item":item, "count":count}
+        head = {"item":item, "count":count}
         pass
 
         sequence = {}
@@ -59,16 +60,20 @@ class data:
 
             v = list(v)
             chain = []
-            for i in header['item']: 
+            for i in head['item']: 
 
                 if(i in v): chain += [i]
                 continue
 
             sequence[key] = chain
             continue
-            
+        
+        head['item'].reverse()
+        head['count'].reverse()
+        pass
+
         self.threshold = threshold
-        self.header = header
+        self.head = head
         self.sequence = sequence
         return
 
@@ -107,7 +112,6 @@ class node:
 
 class plant:
 
-    # def __init__(self, table, connection = {}):
     def __init__(self, sequence):
 
         self.sequence = sequence
@@ -131,232 +135,331 @@ class plant:
             continue
         
         self.tree = tree
-        self.connection = {}
+        # self.connection = {}
         return
 
-    def connect(self, tree):
-        
-        if(tree.children!={}):
-            
-            for (_, children) in tree.children.items():
+    def connect(self, children, first=True):
 
-                exist = self.connection.get(children.name)
-                if(not exist): self.connection[children.name] = []
-                # children.track()
-                # right, left = children.trace[-1], children.trace[1:-1]
-                # mate(right=right, left=left)
-                self.connection[children.name] += [children]
+        if(first): self.connection = {}
+        if(children!={}):
+            
+            for (_, item) in children.items():
+
+                exist = self.connection.get(item.name)
+                if(not exist): self.connection[item.name] = []
+                self.connection[item.name] += [item]
                 pass
                 
-                self.connect(tree=children)
+                self.connect(children=item.children, first=False)
                 continue
 
             pass
 
         return
 
-    def search(self, item):
+    pass
 
-        branch = []
-        for b in self.connection.get(item):
+class pattern:
 
-            b.track()
-            branch += [b.trace]
+    def __init__(self, connection, threshold):
+
+        self.connection = connection
+        self.threshold = threshold
+        pass
+    
+    def grow(self, item=38, limit=None):
+
+        base = []
+        # print(item)
+        for l in connection[item]:
+
+            l.track()
+            if(len(l.trace)<3): continue
+            b = [n.name for n in l.trace[1:-1]] * l.trace[-1].count
+            base += b
             continue
         
-        return(branch)
+        unit = {}
+        threshold = self.threshold
+        for i in set(base):
+
+            if(base.count(i)>threshold): unit.update({i:base.count(i)})
+            
+            continue
+
+        base = [set([i]) for i in unit.keys()]
+        group = []
+        frequency = {}
+        limit = limit if(limit) else len(base)
+        for i in range(limit):
+
+            if(i==0): 
+                
+                group += base.copy()
+                frequency.update({",".join([str(k)]+[str(item)]):v for k,v in unit.items()})
+                pass
+
+            else:
+
+                # group = [set.union(l,r) for l in base for r in group]
+                pool = group.copy()
+                # print(pool)
+                for b in base:
+
+                    # pool = [p for p in pool if(p.intersection(b)==set())]
+                    for g in pool:
+                        
+                        u = set.union(b, g)
+                        if(u not in group): 
+                            
+                            group += [u]
+                            f = {",".join([str(i) for i in u]+[str(item)]): min([unit.get(v) for v in u])}
+                            frequency.update(f)
+                            pass
+
+                        continue
+
+                    continue
+
+                pass
+
+            continue
+        
+
+        return(frequency)
 
     pass
 
-# def mate(right, left, threshold):
-
-#     group = {}
-#     length = len(left)
-#     pass
-
-#     for e in range(length):
-        
-#         k = ",".join([n.name for n in left[:e+1]]) + ":" + right.name
-#         v = right.count
-#         if(group.get(k)): group[k] += v
-#         else: group[k] = v
-#         continue
-
-#     for s in range(length-1):
-
-#         k = ",".join([n.name for n in left[s+1:]]) + ":" + right.name
-#         v = right.count
-#         if(group.get(k)): group[k] += v
-#         else: group[k] = v        
-#         continue
-    
-#     # group = {k: v for k, v in group.items() if v >= threshold}
-#     return(group)
-
-d = data(path='./inputs/bit')
+threshold=300
+d = data(path='./inputs/2022-DM-release-testdata-2.data')
 d.read()
-d.prepare()
-d.header
+d.length
+d.prepare(threshold=threshold)
+d.head
 p = plant(sequence=d.sequence)
 p.build()
-p.connect(tree=p.tree)
-p.connection
-p.search(item='I3')
-
-right = '1'
-left = ['a', 'b', 'c', 'd', 'e']
-class chain:
-
-    def __init__(self, left='node8', right=['node1', 'node2', 'node3', 'node4', 'node5']):
-        
-        self.left = left
-        self.right = right
-        return
-
-    def get(self, width=1):
-
-        length = len(self.right)
-        for index in range(length):
-
-            ",".join([n.name for n in self.right[index:index+width]]) + ":" + self.left.name
-            pass
-
-        return
-
-    pass
+p.connect(children=p.tree.children, first=True)
+connection = p.connection
+pa = pattern(connection=connection, threshold=threshold)
 
 
+# pa.grow(item=38, limit=3)
 
-p.branch['I3'][0]
-right = p.branch['I3'][0][-1]
-left = p.branch['I3'][0][1:-1]
+frequency = {}
+for i in d.head['item']:
 
-
-
-mate(right=right, left=left, threshold=1)
-
-d.header
-d.header['item'][-1]
-nolist = p.connection['I4']
-nolist[0].track()
-= [n.name for n in nolist[0].trace]
+    print(i)
+    frequency.update(pa.grow(i, limit=3))
+    continue
 
 
-# trans = data.read('./inputs/bit')
-# head, trans_order = prepare(trans)
-# tr = root(table=trans_order)
-# tr.build()
-# tr.connection
-# tr.connect(tr.tree)
+len(frequency.keys())
+len(set(frequency.keys()))
+frequency['14,18']
 
-# def undefine(branchList, node):
+2184
+1580 / 
+# def grow(unit, limit=3):
 
-#     #根據子樹根以及給定的node去計算彼此的頻率
+#     base = [set([i]) for i in unit.keys()]
+#     group = []
+#     frequency = {}
+#     limit = limit if(limit) else len(base)
+#     for i in range(limit):
+
+#         if(i==0): 
+            
+#             group += base
+#             frequency.update({str(k):v for k,v in unit.items()})
+#             pass
+
+#         else:
+
+#             for b in base:
+
+#                 for g in group:
+
+#                     u = set.union(b, g)
+#                     # print(u)
+#                     if(u not in group): 
+                        
+#                         group += [u]
+#                         f = {",".join([str(i) for i in u]): min([unit.get(v) for v in u])}
+#                         frequency.update(f)
+#                         pass
+
+#                     continue
+
+#                 continue
+
+#             pass
+
+#         continue
+
 #     return
 
+# def subs(l):
+#     if l == []:
+#         return [[]]
 
-[i.name for i in tr.connection['I5'][2].track()]
+#     x = subs(l[1:])
 
-treeClass = tr.tree
+#     return x + [[l[0]] + y for y in x]    
 
-nodeItem = nodeList[0]
-itemChain = []
-while(nodeItem.father):
+# subs([1,2,4,5,6])
+# # class generation:
+
+# #     def __ini__(self, unit):
+
+# #         self.unit = unit
+# #         return
     
-    itemChain += [nodeItem.father]
-    nodeItem = nodeItem.father
-    pass
+# #     def grow(self, first=True):
 
-itemChain.reverse()
-itemChain[0]
+# #         if(first): 
+            
+# #             pattern = self.unit
+# #             pool = [set([i]) for i in self.unit]
+# #             pass
 
-def trim(nodeList, treeClass):
+# #         else: 
 
-    branch = []
-    n = nodeList[0]
-    n.father
-    branch
-    return
+# #             for l in pattern:
+# #                 break
+# #                 for r in pattern:
+
+# #                     p = set([l,r])
+# #                     if(p not in pool):
+
+# #                         pool += [p]
+# #                         set()
+# #                         pass
+
+# #                     continue
+
+# #                 continue
+
+# #             pass
+
+# #         return
+
+# #     pass
+
+# # unit
+
+# e = engine(p.tree, d.head, p.connection)
+# e.search(threshold=200)
+# e.frequency
+
+# unit = {}
+# # class branch:
+
+# #     def __init__(self, trace, size=3):
+
+# #         self.trace = trace
+# #         self.size = size
+# #         return
+
+# #     def match(self):
+
+# #         left = self.trace[1:-1]
+# #         right = self.trace[-1]
+# #         pass
+
+# #         count = right.count
+# #         name = right.name
+# #         pattern = self.expand(term=[n.name for n in left])
+# #         item = [p+","+str(name) for p in pattern]
+# #         return(item, count)
+
+# #     def expand(self, term):
+
+# #         for i in range(self.size):
+
+# #             if(i==0): 
+
+# #                 group = [set([n]) for n in term]
+# #                 continue
+
+# #             else:
+                
+# #                 pool = []
+# #                 for n in term:
+
+# #                     for g in group:
+
+# #                         c = g.union(set([n]))
+# #                         if(c not in pool): pool += [c]
+
+# #                     continue
+                
+# #                 group = pool
+# #                 pass    
+            
+# #             continue
+        
+# #         extension = [','.join([str(i) for i in list(i)]) for i in group]
+# #         return(extension)
+
+# #     pass
+
+# class engine:
+
+#     def __init__(self, tree, head, connection):
+
+#         self.tree = tree
+#         self.head = head
+#         self.connection = connection
+#         return
+
+#     def search(self, threshold=2):
+
+#         frequency = {}
+#         loop = zip(self.head['item'], self.head['count'])
+#         for key, _ in loop:
+
+#             index = set()
+#             pattern = []
+#             for chain in self.connection[key]:
+
+#                 chain.track()
+#                 trace = chain.trace
+#                 if(len(trace)>2):
+
+#                     item, count = branch(trace=trace).match()
+#                     index = set.union(index, set(item))
+#                     pattern += item * count
+#                     pass
+
+#                 continue
+            
+#             for i in index:
+
+#                 if(pattern.count(i)<threshold):
+
+#                     continue
+
+#                 elif(frequency.get(i)):
+
+#                     frequency[i] += pattern.count(i)
+#                     pass
+                
+#                 else:
+
+#                     frequency[i] = pattern.count(i)
+#                     pass
+
+#                 continue
+
+#             continue
+        
+#         loop = zip(self.head['item'], self.head['count'])
+#         frequency.update({k:v for k, v in loop})
+#         self.frequency = frequency
+#         return
+
+#     pass
 
 
-# head["item"][-1]
-# head["count"][-1]
-# tree = tr.tree
-# tree
 
-# h = head["item"][-1]
-# n = tr.connection[h][0]
-# n.father.father.father.name
-
-# def prune(node, tree):
-
-    
-#     return(tree)
-
-
-# # node = tr.tree.children['I2']
-# # node.name
-
-# # tr.tree.children['I2'].children['I1'].children['I4'].children
-# # tr.table
-
-# # tree = tr.tree
-# # tr.connection
-# # head = head
-
-# # connection = {}
-
-
-# # h = head['item'][0]
-# # connection[h] = []
-# # c = tree.children
-# # for t in c:
-
-# #     if(c.get[t]): +=[{c:c.get[t]}]
-# #     continue
-
-
-
-# # item, count = head["item"][-1], head["count"][-1]
-
-
-
-# # dictionary = read(path='./inputs/example')
-# # pprint.pprint(dictionary)
-# # support, sequence = prepare(dictionary=dictionary, threshold=2)
-# # pprint.pprint(support)
-# # pprint.pprint(sequence)
-
-# # def grow_node(chain=['I2', 'I1', 'I5'], node = {}):
-
-# #     if(node=={}): node = {chain[-1]:{}}
-# #     else: node = {chain[-1]:node}
-# #     del chain[-1]
-# #     if(chain!=[]): return(grow(chain, node))
-# #     else: return(node)
-
-# # left = {'I2': {'I1': {'I5': {}}}}
-# # right = {'I2': {'I4': {}}}
-# # by = 'left'
-# # intersection = set.intersection(set(left.keys()), set(right.keys()))
-# # intersection != {}
-# # if(condition): pass
-# # list(intersection)
-# # left
-
-# # grow_node(chain=['I1', 'I3'])
-
-
-# # ['A', "C", "E", 'B']
-# # a = [1,1,1,1]
-
-# # ['A', 'C']
-# # b = a[:2]
-# # b[0] = b[0]+1
-
-# # a
-
-# # b = a
-# # a[0] = 2
-# # b[0]
 
