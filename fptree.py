@@ -252,13 +252,17 @@ for i in d.head['item']:
     frequency.update(pa.grow(i, limit=3))
     continue
 
+frequency['34,14,41'] / 2997
+d.head["14"]
+
+2997*0.105
 
 len(frequency.keys())
 len(set(frequency.keys()))
 frequency['14,18']
 
 2184
-1580 / 
+1580
 # def grow(unit, limit=3):
 
 #     base = [set([i]) for i in unit.keys()]
