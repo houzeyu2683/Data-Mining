@@ -115,6 +115,7 @@ class engine:
     def load(self, dictionary):
 
         self.dictionary = dictionary
+        self.length = len(dictionary)
         return
 
     def scan(self):
@@ -139,7 +140,11 @@ class engine:
 
             continue
 
-        self.count = count
+        f = count['frequency']
+        l = range(len(f))
+        s = sorted(l, key=lambda k: f[k])
+        c = {'item':[count['item'][i] for i in s], 'frequency':[count['frequency'][i] for i in s]}
+        self.count = c
         return
 
     def cross(self):
@@ -209,19 +214,8 @@ class engine:
 
         return
 
-    def associate(self, antecedent={34, 41}, consequent={14}):
-
-        ##
-        return
-
     pass
 
-dictionary = read(path='./inputs/2022-DM-release-testdata-2.data')
-apriori = engine(support=300, confidence=0, limit=10)
-apriori.load(dictionary)
-apriori.scan()
-apriori.cross()
-apriori.write(path='./outputs/apriori.csv')
 
 
 

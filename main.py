@@ -1,336 +1,90 @@
 
-class ibmqd:
+import argparse
+import time
+import os
 
-    def __init__(self, path=None):
+import apriori
+import fptree
 
-        self.path = path
-        return
+def write(output, path='output.txt'):
 
-    def load(self):
+    iteration = list(output.values())
+    with open(path, 'w') as paper:
+            
+        title = ['freqset', 'support']
+        line = ','.join(title) + '\n'
+        paper.write(line)
+        for i in zip(*iteration):
 
-        dictionary = {}
-        # item = []
-        with open(self.path, 'r') as paper:
+            line = ','.join([str(s) for s in i]) + '\n'
+            paper.write(line)
+            continue
 
-            for line in paper.readlines():
-                
-                _, t, i = line.split()
-                # item += [i]
-                i = int(i)
-                if(dictionary.get(t)): dictionary[t].add(i)
-                else: dictionary[t] = {i}
-                continue
+        pass
 
-            pass
+    return
 
-        self.dictionary = dictionary
-        # self.item = [{i} for i in set(item)]
-        return   
+if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--min_sup", help="min support", default=200, type=float)
+    parser.add_argument("--min_conf", help="min confidence", default=200, type=float)
+    parser.add_argument("--dataset", help="dataset", default='./inputs/2022-DM-release-testdata-2.data', type=str)
+    args = parser.parse_args()
     pass
 
-def scan(dictionary={'01':{'a', 'b', 'c'}, '02':{'b', 'c', 'a'}}, threshold=0.5, item=[{'b', 'a'}]):
-
-    proposal = {'item':[], 'score':[]}
-    refusion = {'item':[], 'score':[]}
-    for i in item:
-
-        count = 0
-        for k in dictionary:
-
-            exist = set.intersection(i, dictionary[k]) == i
-            if(exist): count += 1 
-            continue
-            
-        s = (count / len(dictionary))
-        store = s > threshold
-        if(store): 
-            
-            proposal['item'] += [i]
-            proposal['score'] += [s]
-            pass
-            
-        else: 
-
-            refusion['item'] += [i]
-            refusion['score'] += [s]
-            pass
-
-        continue
-
-    output = proposal['item'], proposal['score'], refusion['item'], refusion['score']
-    return(output)
-
-def expand(item=[{'a'}, {'b'}, {'c'}, {"d"}], ignore=[], length=2):
-
-    candidate = []
-    for left in item:
-
-        for right in item:
-
-            l, r = set(left), set(right)
-            g = set.union(set(l), r)
-            store = (g not in candidate) and (len(g)==length) and (sum([i.issubset(g) for i in ignore])==0)
-            if(store): candidate += [g]
-            continue
-
-        continue
-
-    return(candidate)
-
-class apriori:
-
-    def __init__(self, dictionary, support, limit=20):
-
-        self.dictionary = dictionary
-        self.support = support
-        # self.confidence = confidence
-        self.limit = limit
-        return
-
-    def prepare(self):
-
-        item = []
-        for k in self.dictionary: item += list(self.dictionary[k])
-        item = [{i} for i in set(item)]
-        return(item)
-
-    def filter(self):
-
-        summary = {
-            'item':[],
-            'score':[]
-        }
-        for i in range(self.limit):
-
-            if(i==0): item = self.prepare()
-            else: 
-                
-                item = expand(item=p['i'], ignore=r['i'], length=i+1)
-                if(item==[] or i==(self.limit-1)): break
-                pass
-
-            p, r = {}, {}
-            p['i'], p['s'], r['i'], _ = scan(dictionary=self.dictionary, threshold=self.support, item=item)
-            for k, v in zip(p['i'], p['s']): 
-
-                summary['item'] += [k]
-                summary['score'] += [round(v,3)]
-                continue
-
-            continue
-
-        self.summary = summary
-        return
-
-    def associate(self, antecedent='14', consequent='18'):
-
-        left = set([int(i) for i in antecedent.split()])
-        right = set([int(i) for i in consequent.split()])
-        union = set.union(left, right)
-        score = {
-            'left':self.summary['score'][self.summary['item'].index(left)],
-            'right':self.summary['score'][self.summary['item'].index(right)],
-            'union':self.summary['score'][self.summary['item'].index(union)]
-        }
-        support = self.support
-        confidence = score['union'] / score['left']
-
-        confidence = self.score.get(union) / self.score.get(left)
-        lift = confidence / right
-        return(support, confidence, lift)
-
+    min_sup = args.min_sup
+    min_conf = args.min_conf
+    dataset = args.dataset
+    min_sup = 100
+    min_conf = 100
+    dataset = './inputs/ibm-2022.txt'
+    
+    print('start apriori method')
+    dictionary = apriori.read(path=dataset)
+    # LEN = len(dictionary) ## 不該這樣搞
+    # threshold_sup = int(LEN*min_sup)
+    # threshold_conf = int(LEN*min_conf)
+    threshold_sup = min_sup
+    threshold_conf = min_conf
+    start_time = time.time()
+    apriori_engine = apriori.engine(support=threshold_sup, confidence=threshold_conf, limit=10)
+    apriori_engine.load(dictionary)
+    apriori_engine.scan()
+    finish_time = time.time()
+    apriori_engine.time = finish_time - start_time
+    print('finish apriori method: {}'.format(apriori_engine.time))
     pass
 
-path = 'inputs/2022-DM-release-testdata-2.data'
-data = ibmqd(path)
-data.load()
-model = apriori(dictionary=data.dictionary, support=0.5)
-model.filter()
-model.summary
-model.associate(antecedent='14', consequent='18')
+    ##  Store the hw ouput format.
+    apriori_output = {'freqset':[], 'support':[]}
+    loop = zip(apriori_engine.count['item'], apriori_engine.count['frequency'])
+    for i,f in loop:
 
-
-
-# item = model.prepare()
-
-# dictionary = data.dictionary
-
-# model.prepare()
-# p, f = model.filter(model.item)
-
-# item = expand(item=p['item'], ignore=f['item'], length=2)
-
-# p, f = model.filter(item)
-
-# item = expand(item=p['item'], ignore=f['item'], length=3)
-# if(item==[])
-# p, f = model.filter(item)
-
-
-# p['item']
-
-# f
-
-
-# item  = [{'a'}, {'b'}, {'c'}]
-# # score = [0.5, 0.2, 0.3]
-
-# def support(dictionary, item={'30', '2'}):
-
-#     count = 0
-#     for k in dictionary:
-
-#         exist = set.intersection(item, dictionary[k]) == item
-#         if(exist): count += 1 
-#         continue
+        apriori_output['freqset'] += ["{" + " ".join([str(i) for i in list(i)]) + "}"]
+        apriori_output['support'] += [f / apriori_engine.length]
+        continue
     
-#     length = len(dictionary)
-#     score = count / length
-#     return(score)
+    write(apriori_output, path=dataset.replace('inputs', 'outputs') + '_appriori.csv')
 
+    print('start fptree method')
+    fptree_engine = fptree.Engine(path=dataset, support=threshold_sup, confidence=threshold_conf)
+    start_time = time.time()
+    fptree_engine.scan()
+    finish_time = time.time()
+    fptree_engine.time = finish_time - start_time
+    print('finish fptree method: {}'.format(fptree_engine.time))
+    pass
 
+    ##  Store the hw ouput format.
+    fptree_output = {'freqset':[], 'support':[]}
+    loop = zip(fptree_engine.count['item'], fptree_engine.count['frequency'])
+    for i,f in loop:
 
-
-    # def prepare(self):
-
-    #     length = len(self.transaction)
-    #     item = set()
-    #     chain = []
-    #     for k in self.transaction: 
-            
-    #         item = item.union(self.transaction[k])
-    #         chain = chain + list(self.transaction[k])
-    #         continue
-        
-    #     count = []
-    #     support = []
-    #     for i in item: 
-            
-    #         count += [chain.count(i)]
-    #         support += [chain.count(i)/length]
-    #         continue
-
-    #     pass
-
-    #     self.length = length 
-    #     self.item = item
-    #     self.chain = chain 
-    #     self.count = count
-    #     self.support = support
-    #     return
-
-    # pass
-
-# support(d.dictionary, {'12', '15'})
-
-# d.prepare()
-# d.item
-# d.count
-# tr = d.transaction
-# d.chain
-# len(tr)
-# tr.items()
-
-
+        fptree_output['freqset'] += ["{" + " ".join([str(i) for i in list(i)]) + "}"]
+        fptree_output['support'] += [f / fptree_engine.length]
+        continue
     
-
-
-#     pass
-
-# antecedent = {'12', '18'}
-# consequent = '6'
-# support = 0.5
-# confidence = 0.6
-# #lift
-
-
-
-# def load_data(path):
-
-#     item_list = []
-#     with open(path, 'r') as f:
-
-#         lines = f.readlines()
-#         for line in lines:
-            
-#             _, _, iid = line.split()
-#             item_list += [iid]
-#             continue
-
-#         pass
-
-#     out = item_list
-#     return(out)
-
-# trans = load_data(path='inputs/2022-DM-release-testdata-2.data')
-# trans_unique = set(trans)
-# for i in trans_unique: 
-    
-#     c = trans.count(i)
-
-
-
-# trans[0:20]
-
-
-
-
-# item_list = trans
-# unique_item_set = set(trans)
-# unique_item_set_len = len(unique_item_set)
-
-# for i in unique_item_set: 
-    
-#     {i : item_list.count(i)/ unique_item_set_len}
-    
-    
-
-
-
-# def init_level_table(trans):
-
-#     seq = []
-#     for k in trans: seq += trans[k]
-
-
-
-# # transaction_table = {'transID':[], "itemID":[]}
-# # transaction_table = pd.DataFrame(transaction_table)
-
-
-# def level_count(trans_dict)
-
-
-
-# given_minsup = 0.5
-# given_minconf = 0.6
-# given_left_itemset = ['9', '4']
-# given_right_itemset = ['6']
-
-# given_union_set = given_left_itemset + given_right_itemset
-# level_max = len(given_union_set)
-
-# for i in range(level_max):
-
-#     if(i==0):
-
-#         class leveltab:
-
-#             level = 0
-#             trans = transaction_dict.copy()
-#             length = len(transaction_dict)
-#             pass
-        
-#         sum([given_union_set[i] in leveltab.trans[k] for k in leveltab.trans]) / leveltab.length
-
-# t_level = 1
-# item_unique_set = set(T['itemID'])
-
-
-
-# T['itemID'].count("3")
-
-
-
+    write(fptree_output, path=dataset.replace('inputs', 'outputs') + '_fptree.csv')
+    pass
 

@@ -68,8 +68,6 @@ def processDictionary(dictionary=None, threshold=2):
         continue
     
     head["item"]
-    # head["item"].reverse()
-    # head['count'].reverse()
     return(sequence, head)
 
 class Node:
@@ -192,6 +190,7 @@ def getTerm(head, condition=[]):
 
     return(term)
 
+
 def matchPattern(head, condition):
 
     pattern = []
@@ -223,69 +222,45 @@ def mineTree(sequence, head, threshold, condition=[], frequency=[]):
 
     pass
 
-class Engine:
 
-    def __init__(self, path, support=200, confidence=200):
-
-        self.path = path
-        self.support = support
-        self.confidence = confidence
-        return
-    
-    def scan(self):
-
-        data = Data(path=self.path)
-        data.readDictionary()
-        self.length = data.length ## = =!
-        sequence, head = processDictionary(dictionary=data.dictionary, threshold=self.support)
-        condition = []
-        frequency = []
-        plant = Plant(sequence=sequence, head=head, threshold=self.support)
-        plant.build()
-        for _, (item, _) in enumerate(zip(reversed(head['item']), reversed(head['count']))):
-
-            if(item=='root'):break
-            condition = [item]
-            pattern = mineTree(sequence, head, self.support, condition=condition, frequency=[])
-            frequency += pattern
-            continue
-
-        frequency = sum(frequency, [])
-        count = {'item':[], 'frequency':[]}
-        for i in frequency:
-
-            count['item'] += [set([int(i) for i in list(i.keys())[0].split(',')])]
-            count['frequency'] += [list(i.values())[0]]
-            continue
-
-        f = count['frequency']
-        l = range(len(f))
-        s = sorted(l, key=lambda k: f[k])
-        c = {'item':[count['item'][i] for i in s], 'frequency':[count['frequency'][i] for i in s]}
-        self.count = c
-        return
-
-    pass
+d = Data(path='./inputs/2022-DM-release-testdata-2.data')
+d.readDictionary()
+threshold=200
+sequence, head = processDictionary(dictionary=d.dictionary, threshold=threshold)
+condition=[]
+frequency=[]
+plant = Plant(sequence=sequence, head=head, threshold=threshold)
+plant.build()
 
 
-# frequency = sum(frequency, [])
-# frequency
+frequency = []
+# item = 14
+for _, (item, _) in enumerate(zip(reversed(head['item']), reversed(head['count']))):
+
+    if(item=='root'):break
+    condition = [item]
+    pattern = mineTree(sequence, head, threshold, condition=condition, frequency=[])
+    frequency += pattern
+
+    continue
+
+[i for i in frequency[1:10]]
+# condition=[] 代表第一個大樹沒有
+
+frequency = sum(frequency, [])
+count = {}
+for f in frequency:
+
+    count.update(f)
+    continue
+
+count['14,41']  458
+count['14,41,34']  316
+14    2148
+34    1920
 
 
-
-# count = {}
-# for f in frequency:
-
-#     count.update(f)
-#     continue
-
-# count['14,41']  458
-# count['14,41,34']  316
-# 14    2148
-# 34    1920
-
-
-# d.length 2997
+d.length 2997
 
 
 
