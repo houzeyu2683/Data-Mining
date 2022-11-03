@@ -1,12 +1,12 @@
 
-class data:
+class Data:
 
     def __init__(self, path):
 
         self.path = path
         return
 
-    def read(self):
+    def readTable(self):
 
         dictionary = {}
         with open(self.path, 'r') as paper:
@@ -28,7 +28,7 @@ class data:
         self.dictionary = dictionary
         return
 
-    def prepare(self, threshold=2):
+    def process(self, threshold=2):
 
         dictionary = self.dictionary
         pass
@@ -79,7 +79,7 @@ class data:
 
     pass
 
-class node:
+class Node:
 
     def __init__(self, count=0, name="", children={}, father=None, status=0):
 
@@ -90,14 +90,14 @@ class node:
         self.status = status
         return
 
-    def track(self):
+    def trackPath(self):
 
         if(self.father):  
             
             trace = [self]
             item = self.father
             while(item):
-
+                
                 trace += [item]
                 item = item.father
                 pass
@@ -111,24 +111,25 @@ class node:
 
     pass
 
-class plant:
+class Plant:
 
-    def __init__(self, sequence):
+    def __init__(self, sequence, threshold=300):
 
         self.sequence = sequence
+        self.threshold = threshold
         return
 
-    def build(self):
+    def buildTree(self):
 
         sequence = self.sequence
-        tree = node(count=None, name='root', children={}, father=None, status=0)
+        tree = Node(count=None, name='root', children={}, father=None, status=0)
         for row in sequence:
             
             branch = tree
             for name in sequence[row]:
                 
                 if(branch.children.get(name)): branch.children.get(name).count += 1
-                else: branch.children[name] = node(count=1, name=name, children={}, father=branch, status=0)
+                else: branch.children[name] = Node(count=1, name=name, children={}, father=branch, status=0)
                 branch = branch.children[name]
                 continue
             
@@ -138,126 +139,154 @@ class plant:
         return
 
     ##  Tree node link.
-    def connect(self, node, first=True):
+    def getLink(self, node, root=True):
 
-        if(first): self.connection = {}
+        if(root): self.link = {}
         if(node.children!={}):
             
             for (_, item) in node.children.items():
 
-                exist = self.connection.get(item.name)
-                if(not exist): self.connection[item.name] = []
-                self.connection[item.name] += [item]
+                exist = self.link.get(item.name)
+                if(not exist): self.link[item.name] = []
+                self.link[item.name] += [item]
                 pass
                 
-                self.connect(node=item, first=False)
+                self.getLink(node=item, root=False)
                 continue
 
             pass
 
         return
 
-    ##  get head table with sort.
-    def update(self, what='head'):
+    ##  get head table.
+    def getHead(self):
 
-        if(what=='head'):
-
-            assert self.connection, 'connection not found'
-            length = len(self.connection.keys())
-            item, count = [], []
-            for k in self.connection.keys():
+        assert self.link, 'link not found'
+        length = len(self.link.keys())
+        item, count = [], []
+        for k in self.link.keys():
                 
-                item += [k]
-                count += [sum([n.count for n in self.connection[k]])]
-                continue
+            item += [k]
+            count += [sum([n.count for n in self.link[k]])]
+            continue
             
-            order = sorted(range(length), key=lambda k: count[k])
-            item = [item[o:o+1][0] for o in order]
-            count = [count[o:o+1][0] for o in order]
-            head = {'item': item, "count":count}
-            self.head = head
-            pass
-
+        order = sorted(range(length), key=lambda k: count[k])
+        item = [item[o:o+1][0] for o in order]
+        count = [count[o:o+1][0] for o in order]
+        head = {'item': item, "count":count}
+        self.head = head
         return
 
-    def capture(self, node=37):
+    def captureBranch(self, node=17):
 
-        connection = self.connection
-        for n in connection[node]: 
+        link = self.link
+        threshold = self.threshold
+        chain = []
+        for n in link[node]: 
 
-            c = n.count
-            n.children = {}
-            while(n.name != 'root'): 
-
-                if(n.status==0): 
-                    
-                    n.count = c
-                    n.status = 1
-                    pass
-
-                else: 
-                    
-                    n.count += c
-                    pass
-
-                n = n.father
-                continue
-        
-        ##  Remove the node without status=0(not visit)
-        for k in connection: 
-
-            for n in connection[k]:
-
-                name = None
-                while(n.status==0):
-
-                    name = n.name 
-                    n = n.father
-                    if(not n): continue
-                    break
-
-                if(not n or not name): break
-
-                if(n.children.get(name)): n.children.pop(name)
-                continue
-
+            n.trackPath()
+            del n.trace[0]
+            del n.trace[-1]
+            chain += [{i.name for i in n.trace} for _ in range(n.count)]
             continue
 
+        dictionary = {k:v for k,v in enumerate(chain)}
+        item, count = [], []
+        loop = set.union(*dictionary.values())
+        length = 0
+        for k in loop:
+
+            c = sum([k in v for v in dictionary.values()])
+            if(c>=threshold):
+
+                count += [c]
+                item += [{k}]
+                length += 1
+                pass
+                
+            continue
+        
+        index = range(length)
+        order = sorted(index, key=lambda k: count[k], reverse = True)
+        item = [list(item[o])[0] for o in order]
+        count = [count[o] for o in order]
+        head = {"item":item, "count":count}
+        pass
+
+        sequence = {}
+        for key, v in dictionary.items():
+
+            v = list(v)
+            chain = []
+            for i in head['item']: 
+
+                if(i in v): chain += [i]
+                continue
+
+            sequence[key] = chain
+            continue
+        
+        head['item'].reverse()
+        head['count'].reverse()
+        pass
+
+        self.threshold = threshold
+        self.head = head
+        self.sequence = sequence
+        pass
+
+        self.buildTree()
         self.branch = self.tree
         return
 
     def reset(self):
 
-        self.build()
-        self.connect(node=self.tree, first=True)
-        self.sort()
+        self.buildTree()
+        self.getLink(node=self.tree, first=True)
+        self.getHead()
         self.branch = None
         return
     
+    def mineFrequency(self, p):
+
+        head = p.head
+        print('對', head['item'], "開發")
+        tree = p.tree
+        link = p.link
+        for k, v in zip(head['item'], head['count']):
+            break
+            p.captureBranch(node=k)
+            p.tree
+            p.tree.children
+            print('---')
+            p.getLink(node=p.tree, root=True)
+            print('--')
+            p.getHead()
+            print('-')
+            print('對', p.head['item'], "開發")
+            continue
+
+        return
+
     pass
 
-threshold=300
-d = data(path='./inputs/2022-DM-release-testdata-2.data')
-d.read()
-d.prepare()
+threshold=30
+d = Data(path='./inputs/2022-DM-release-testdata-2.data')
+d.readTable()
+d.process(threshold=threshold)
 d.length
+d.head
 
-p = plant(sequence=d.sequence)
-p.build()
-p.connect(p.tree)
-p.sort()
-p.head
-p.tree.children[14].children
-
-p.capture(node=18)
-p.branch.children
-p.connect(node=p.branch)
-p.connection
-p.sort()
-p.head
-
-p.branch.children[18].children
-p.branch.children[14].children
-p.reset()
-p.tree.children
+p = Plant(sequence=d.sequence)
+p.buildTree()
 p.tree
+p.tree.children
+p.getLink(node=p.tree, root=True)
+p.getHead()
+p.head
+
+p.captureBranch(node=23)
+p.branch.children
+
+
+
