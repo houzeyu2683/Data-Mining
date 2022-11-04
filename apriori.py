@@ -1,5 +1,5 @@
 
-def read(path):
+def readTable(path):
 
     dictionary = {}
     with open(path, 'r') as paper:
@@ -7,222 +7,187 @@ def read(path):
         for line in paper.readlines():
             # print(line)
             _, t, i = line.split()
-            try: i = int(i) 
-            except: i = str(i)
+            # try: i = int(i) 
+            # except: i = str(i)
+            i = str(i)
             if(dictionary.get(t)): dictionary[t].add(i)
             else: dictionary[t] = {i}
             continue
     
         pass
     
-    return(dictionary)
+    table = {
+        "number":list(dictionary.keys()), 
+        "item":[list(v) for v in dictionary.values()]
+    }
+    return(table)
 
-def occur(dictionary={'01':{'a', 'b', 'c'}, '02':{'b', 'c', 'a'}}, threshold=2, item=[{'b', 'a'}]):
+def getHead(table):
 
-    proposal = {'item':[], 'frequency':[]}
-    refusion = {'item':[], 'frequency':[]}
-    for i in item:
-
-        count = 0
-        for k in dictionary:
-
-            exist = set.intersection(i, dictionary[k]) == i
-            if(exist): count += 1 
-            continue
-            
-        # s = (count / len(dictionary))
-        f = count
-        condition = count >= threshold
-        if(condition): 
-            
-            proposal['item'] += [i]
-            proposal['frequency'] += [f]
-            pass
-            
-        else: 
-
-            refusion['item'] += [i]
-            refusion['frequency'] += [f]
-            pass
-
-        continue
-
-    output = proposal, refusion
-    return(output)
-
-# item = [{'I4', 'I2'}, {'I1', 'I2'}, {'I1', 'I3'}, {'I1', 'I5'}, {'I2', 'I3'}, {'I2', 'I5'}]
-def expand(item=[{'a'}, {'b'}, {'c'}, {"d"}, {"c", "d"}], ignore=[], length=2):
-
-    candidate = []
-    for left in item:
-
-        for right in set.union(*item):
-
-            l, r = set(left), set([right])
-            u = set.union(set(l), r)
-            s = sum([i.issubset(u) for i in ignore])
-            store = (u not in candidate) and (len(u)==length) and (s==0)
-            if(store): candidate += [u]
-            continue
-
-        continue
-
-    return(candidate)
-
-# def expand(item=[{'a'}, {'b'}, {'c'}, {"d"}], ignore=[], length=2):
-
-#     candidate = []
-#     for left in item:
-
-#         for right in item:
-
-#             l, r = set(left), set(right)
-#             u = set.union(set(l), r)
-#             s = sum([i.issubset(u) for i in ignore])
-#             store = (u not in candidate) and (len(u)==length) and (s==0)
-#             if(store): candidate += [u]
-#             continue
-
-#         continue
-
-#     return(candidate)
-
-def prepare(dictionary):
-
-    item, count = [], []
-    loop = set.union(*dictionary.values())
-    for k in loop:
-
-        item += [{k}]
-        count += [sum([k in v for v in dictionary.values()])]
-        continue
-    
-    index = range(len(loop))
-    order = sorted(index, key=lambda k: count[k], reverse = True)
-    output = [item[o] for o in order], [count[o] for o in order]
-    return(output)
-
-class engine:
-
-    def __init__(self, support, confidence, limit=20):
-
-        # self.dictionary = dictionary
-        self.support = support
-        self.confidence = confidence
-        self.limit = limit
-        return
-
-    def load(self, dictionary):
-
-        self.dictionary = dictionary
-        return
-
-    def scan(self):
-
-        count = {'item':[],'frequency':[]}
-        for i in range(self.limit):
-
-            if(i==0): item, _ = prepare(self.dictionary)
-            else: 
-
-                item = expand(item=proposal['item'], ignore=refusion['item'], length=i+1)
-                if(item==[] or i==(self.limit-1)): break
-                pass
-            
-            proposal, refusion = occur(dictionary=self.dictionary, threshold=self.support, item=item)
-            loop = zip(proposal['item'], proposal['frequency'])
-            for k, v in loop: 
-
-                count['item'] += [k]
-                count['frequency'] += [round(v,3)]
-                continue
-
-            continue
-
-        self.count = count
-        return
-
-    def cross(self):
-
-        antecedent = []
-        consequent = []
-        support = []
-        confidence = []
-        lift = []
-        total = len(self.dictionary)
-        # print(len(self.count['item']))
-        for left in self.count['item']:
-
-            for right in self.count['item']:
-
-                # print(left, right)
-                union = set.union(left, right)
-                # print(union)
-                condition = (not (union==left or union==right)) and (union in self.count['item'])
-                # print(condition)
-                if(condition): 
-                    
-                    p = {}
-                    p['AUB'] = self.count['frequency'][self.count['item'].index(union)] / total
-                    p['A'] = self.count['frequency'][self.count['item'].index(left)] / total
-                    p['B'] = self.count['frequency'][self.count['item'].index(right)] / total
-                    pass
-
-                    condition = (p['AUB'] / p['A']) >= self.confidence
-                    if(condition):
-
-                        antecedent += [str(left).replace(',', "")]
-                        consequent += [str(right).replace(',', "")]
-                        support += [round(p['AUB'], 3)]
-                        confidence += [round(p['AUB'] / p['A'], 3)]
-                        lift += [round((p['AUB'] / p['A']) / p['B'], 3)]
-                        pass
-
-                    pass
-
-                continue
-
-            continue
-        
-        summary = {
-            'antecedent':antecedent, 'consequent':consequent, 
-            "support":support, "confidence":confidence, "lift":lift
-        }
-        self.summary = summary
-        return
-
-    def write(self, path):
-
-        iteration = list(self.summary.values())
-        with open(path, 'w') as paper:
-            
-            title = ['antecedent', 'consequent', 'support', 'confidence', 'lift']
-            line = ','.join(title) + '\n'
-            paper.write(line)
-            for i in zip(*iteration):
-
-                line = ','.join([str(s) for s in i]) + '\n'
-                paper.write(line)
-                continue
-
-            pass
-
-        return
-
-    def associate(self, antecedent={34, 41}, consequent={14}):
-
-        ##
-        return
-
+    chain = sum(table['item'], [])
+    name = list(set(chain))
+    value = [chain.count(n) for n in name]
     pass
 
-dictionary = read(path='./inputs/2022-DM-release-testdata-2.data')
-apriori = engine(support=300, confidence=0, limit=10)
-apriori.load(dictionary)
-apriori.scan()
-apriori.cross()
-apriori.write(path='./outputs/apriori.csv')
+    index = range(len(name))
+    order = sorted(index, key=lambda k: value[k], reverse = True)
+    unit = [name[o] for o in order]        
+    value = [value[o] for o in order]        
+    head = {'unit':unit, 'value':value}
+    return(head)
+
+def updateHead(head, support):
+
+    loop = zip(head['unit'], head['value'])
+    unit = []
+    value = []
+    for u, v in loop:
+
+        if(v>=support): 
+
+            unit += [u]
+            value += [v]
+            pass
+
+        continue
+
+    head = {'unit':unit, 'value':value}
+    return(head)
+
+def getCount(head):
+
+    loop = zip(head['unit'], head['value'])
+    count = {u:v for u, v in loop}
+    return(count)
 
 
+def upgradeHead(table, head, support):
 
+    chain = sum([u.split(",") for u in head['unit']], [])
+    key = list(set(chain))
+    match = []
+    for u in head['unit']:
 
+        for k in key:
+
+            l = ','.join(list(sorted(set([u,k]))))
+            m = ','.join(list(sorted(set(l.split(',')))))
+            condition = ((m not in match) and (m not in head['unit']))
+            if(condition): match += [m]
+            continue
+        
+        continue
+    
+    count = []
+    for m in match:
+        
+        s = m.split(',')
+        c = 0
+        for i in table['item']:
+
+            exist = not (False in [p in i for p in s])
+            if(exist): c += 1
+            continue
+
+        count += [c]
+        continue
+    
+    name = match
+    value = count
+    pass
+
+    index = range(len(name))
+    order = sorted(index, key=lambda k: value[k], reverse = True)
+    unit = [name[o] for o in order]        
+    value = [value[o] for o in order]        
+    head = updateHead({'unit':unit, 'value':value}, support)
+    return(head)
+
+def getFrequency(summary):
+
+    item = []
+    count = []
+    for i, c in summary.items():
+
+        item += [i]
+        count += [c]
+        continue
+
+    frequency = {'item':item, 'count':count}
+    return(frequency)
+
+def getSupport(summary, length):
+
+    item = []
+    count = []
+    for i, c in summary.items():
+
+        item += [i]
+        count += [round(c/length, 3)]
+        continue
+
+    frequency = {'item':item, 'count':count}
+    return(frequency)
+
+def runApriori(data_path, sup_min, conf_min):
+
+    ##  load data
+    table = readTable(data_path)
+    head = getHead(table)
+    pass
+
+    ##  common setting
+    length = len(table['number'])
+    support = int(sup_min * length)
+    confidence = int(conf_min * length)  ## not use...'..'
+    summary = {}
+    pass
+
+    ##  inital step
+    head = updateHead(head, support=support)
+    count = getCount(head)
+    summary.update(count)
+    pass
+
+    while(head['unit']!=[]):
+
+        head = upgradeHead(table, head, support)
+        count = getCount(head)
+        summary.update(count)
+        pass
+    
+    output = getSupport(summary, length)
+    return(output)
+
+def writeResult(result, path):
+
+    iteration = list(result.values())
+    with open(path, 'w') as paper:
+            	
+        title = ['freqset', 'support']
+        line = ','.join(title) + '\n'
+        paper.write(line)
+        for i in zip(*iteration):
+                
+            k = "{" + i[0].replace(",", " ") + "}"
+            line = ','.join([k, str(i[1])]) + "\n"
+            paper.write(line)
+            continue
+
+        pass
+
+    return
+
+'''
+import time
+DATA_PATH = './inputs/2022-DM-release-testdata-2.data'
+SUP_MIN = 0.3
+CONF_MIN = 0.3
+OUT_PATH = './outputs/2022-DM-release-testdata-2.data_apriori.csv'
+start_time = time.time()
+result = runApriori(data_path=DATA_PATH, sup_min=SUP_MIN, conf_min=CONF_MIN)
+print(len(result['item']))
+finish_time = time.time()
+print("{} sec".format(round(finish_time - start_time, 2)))
+writeResult(result=result, path=OUT_PATH)
+'''
