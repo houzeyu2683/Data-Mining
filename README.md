@@ -80,4 +80,15 @@ method: apriori
 find 50 item set
 confidence item: 7
 
+python main.py --method apriori --dataset ./inputs/2022-DM-release-testdata-2.data --min_sup 0.05 --min_conf 0.1
+method: apriori
+772.58 sec
+find 9481 item set
+confidence item: 97993
+
+python main.py --method fptree --dataset ./inputs/2022-DM-release-testdata-2.data --min_sup 0.05 --min_conf 0.1
+method: fptree
+256.34 sec
+find 9481 item set
+confidence item: 97993
 ```
