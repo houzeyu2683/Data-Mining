@@ -1,32 +1,55 @@
 
+def updateSoil(link, node, support):
+
+    sequence = []
+    for l in link[node]:
+    
+        l.createTrace()
+        # [n.name for n in l.trace]
+        r = [n.name for n in l.trace[1:-1]]
+        b = [r] * l.count
+        sequence += b
+        continue
+    
+    sequence = orderSequence(sequence, support, increasing=False)
+    soil = Soil(sequence=sequence, support=support)
+    soil.createTree()
+    soil.createLink(soil.tree, link={})
+    return(soil)
+
+def cutSoil(link, condition, support):
+
+    condition = condition.split(',')
+    for c in condition:
+
+        soil = updateSoil(link, c, support)
+        if(soil.link==[]): break
+        link = soil.link
+        continue
+    
+    return(soil)
+
 class Soil:
 
-    def __init__(self, sequence, head, support=300):
+    def __init__(self, sequence, support=300):
 
         self.sequence = sequence
-        self.head = head
         self.support = support
         return
-
-    # def build(self):
-
-    #     # print('create tree')
-    #     self.createTree()
-    #     # print('create link')
-    #     self.createLink(node=self.tree, root=True)
-    #     return
 
     def createTree(self):
 
         sequence = self.sequence
-        tree = Node(count=None, name='root', children={}, father=None, status=0)
+        # tree = Node(count=None, name='root', children={}, father=None, status=0)
+        tree = Node(count=None, name='root', children={}, father=None)
         for row in sequence:
-            
+
             branch = tree
             for name in row:
-                
-                if(branch.children.get(name)): branch.children.get(name).count += 1
-                else: branch.children[name] = Node(count=1, name=name, children={}, father=branch, status=0)
+
+                if(branch.children.get(name)): branch.children[name].count += 1
+                # else: branch.children[name] = Node(count=1, name=name, children={}, father=branch, status=0)
+                else: branch.children[name] = Node(count=1, name=name, children={}, father=branch)
                 branch = branch.children[name]
                 continue
             
@@ -57,45 +80,56 @@ class Soil:
         self.link = link
         return
 
-    # def cutNode(self, node):
+    def getHead(self):
 
-    #     link = self.link
-    #     threshold = self.threshold
-    #     chain = []
-    #     for n in link[node]: 
-
-    #         n.trackPath()
-    #         del n.trace[0]
-    #         del n.trace[-1]
-    #         chain += [{i.name for i in n.trace} for _ in range(n.count)]
-    #         continue
-
-    #     dictionary = {k:v for k,v in enumerate(chain)}
-    #     sequence, head = processDictionary(dictionary=dictionary, threshold=threshold)
-    #     stop = True if(len(head['item'])==1) else False
-    #     return(sequence, head, stop)
+        head = getHead(self.sequence, self.support, False)
+        return(head)
 
     pass
 
+def getPattern(link=None, condition='', support=None):
+    
+    loop = sum(link.values(), [])
+    pattern = {}
+    for node in loop:
+        
+        # name = ','.join(condition+[node.name])
+        if(condition==''): name = ','.join([node.name])
+        else: name = ','.join([condition]+[node.name])
+        if(pattern.get(name)): pattern[name] += node.count
+        else: pattern[name] = node.count
+        continue
+    
+    if(support):
+
+        pattern = {k:v for k, v in pattern.items() if(v>=support)}
+        pass
+
+    return(pattern)
+
 class Node:
 
-    def __init__(self, count=0, name="", children={}, father=None, status=0):
+    # def __init__(self, count=0, name="", children={}, father=None, status=0):
+    def __init__(self, count=0, name="", children={}, father=None):
 
         self.count = count
         self.name = name
         self.children = children
         self.father = father
-        self.status = status
+        # self.status = status
         return
 
     def createTrace(self):
 
+        # count = sum([n.count for n in self.children.values()])
         if(self.father):  
             
+            # self.count -= count    
             trace = [self]
             item = self.father
             while(item):
                 
+                # if(item.name!='root'): item.count -= count    
                 trace += [item]
                 item = item.father
                 pass
@@ -115,10 +149,8 @@ def readTable(path):
     with open(path, 'r') as paper:
     
         for line in paper.readlines():
-            # print(line)
+            
             _, t, i = line.split()
-            # try: i = int(i) 
-            # except: i = str(i)
             i = str(i)
             if(dictionary.get(t)): dictionary[t].add(i)
             else: dictionary[t] = {i}
@@ -126,156 +158,110 @@ def readTable(path):
     
         pass
     
-    table = {
-        "number":list(dictionary.keys()), 
-        "item":[list(v) for v in dictionary.values()]
-    }
+    number = list(dictionary.keys())
+    sequence = [list(v) for v in dictionary.values()]
+    table = [number, sequence]
     return(table)
 
-def getHead(table):
+def getHead(sequence, support=None, increasing=True):
 
-    chain = sum(table['item'], [])
-    name = list(set(chain))
-    value = [chain.count(n) for n in name]
+    chain = sum(sequence, [])
     pass
 
-    index = range(len(name))
-    order = sorted(index, key=lambda k: value[k], reverse = True)
-    unit = [name[o] for o in order]        
-    value = [value[o] for o in order]        
-    head = {'unit':unit, 'value':value}
-    return(head)
+    item  = list(set(chain))
+    size  = len(item)
+    count = [chain.count(n) for n in item]
+    pass
 
-def updateHead(head, support):
+    order = sorted(range(size), key=lambda k: count[k], reverse = not increasing)
+    item = [item[o] for o in order]        
+    count = [count[o] for o in order]        
+    head = [item, count]
 
-    loop = zip(head['unit'], head['value'])
-    unit = []
-    value = []
-    for u, v in loop:
-
-        if(v>=support): 
-
-            unit += [u]
-            value += [v]
-            pass
-
-        continue
-
-    head = {'unit':unit, 'value':value}
-    return(head)
-
-def sortSequence(table, head):
-
-    sequence = []
-    h = head['unit']
-    t = table['item']
-    for s in t: sequence += [[i for i in h if(i in s)]]
-    return(sequence)
-
-def getBucket(link, support):
-
-    sequence = []
-    for l in link:
-
-        l.createTrace()
-        # [n.name for n in l.trace]
-        r = [n.name for n in l.trace[1:-1]]
-        b = [r] * l.count
-        sequence += b
-        continue
-    
-    table = {'item':sequence}
-    head = updateHead(getHead(table), support)
-    sequence = sortSequence(table, head)
-    bucket = Soil(sequence=sequence, head=head, support=support)
-    bucket.createTree()
-    bucket.createLink(root=bucket.tree, link={})
-    return(bucket)
-
-def getCount(head):
-
-    loop = zip(head['unit'], head['value'])
-    count = {u:v for u, v in loop}
-    return(count)
-
-def mineBucket(bucket, support, condition=[], term={}):
-
-    head = bucket.head.copy()
-    link = bucket.link.copy()
-    loop = zip(reversed(head['unit']), reversed(head['value']))
-    for unit, _ in loop:
+    if(support):
         
-        if(unit==[]): return(term)
-        bucket = getBucket(link=link[unit], support=support)
-        if(bucket.link=={}): continue 
-        else: 
-            
-            condition = condition + [unit]
-            c = ','.join(condition)
-            term = {','.join([c,k]):v for k, v in getCount(bucket.head).items()}
-            mineBucket(bucket, support, condition, term)
-            pass
+        item, count = [], []
+        for i, c in zip(head[0], head[1]):
 
-        continue
+            if(c>=support):
 
-    return(term)
+                item += [i]
+                count += [c]
+                pass
 
-def getSupport(summary, length):
+            continue
 
-    item = []
-    count = []
-    for i, c in summary.items():
+        head = [item, count]
+        pass
 
-        item += [i]
-        count += [round(c/length, 3)]
-        continue
+    return(head)
 
-    frequency = {'item':item, 'count':count}
-    return(frequency)    
+def orderSequence(sequence, support=None, increasing=False):
 
+    head = getHead(sequence, support, increasing)
+    pass
+
+    q = []
+    h, _ = head
+    for s in sequence: q += [[i for i in h if(i in s)]]
+    pass
+
+    sequence = q
+    return(sequence)
 
 def runFptree(data_path, sup_min, conf_min):
 
-    table = readTable(path=data_path)
-    head = getHead(table)
-    pass
+    # data_path = './inputs/2022-DM-release-testdata-2.data'
+    # data_path = './inputs/test_data_sample.txt'
+    number, sequence = readTable(data_path)
+    support=int(len(number)*sup_min)
 
-    ##  common setting
-    length = len(table['number'])
-    support = int(sup_min * length)
-    confidence = int(conf_min * length)  ## not use...'..'
-    summary = {}
-    pass
-
-    head = updateHead(head, support=support)
-    summary.update(getCount(head))
-    sequence = sortSequence(table, head)
-    soil = Soil(sequence=sequence, head=head, support=support)
-    soil.createTree()
-    soil.createLink(root=soil.tree, link={})
+    head = getHead(sequence, support, increasing=False)
+    sequence = orderSequence(sequence=sequence, support=support, increasing=False)
 
     term = {}
-    head = head.copy()
-    link = soil.link.copy()
-    loop = zip(reversed(head['unit']), reversed(head['value']))
-    for unit, _ in loop:
 
-        link = soil.link[unit]
-        bucket = getBucket(link=link, support=support)
-        if(bucket.link=={}): continue 
-        else: 
+    ##  1-term
+    soil = Soil(sequence, support)
+    soil.createTree()
+    soil.createLink(soil.tree, link={})
+    term.update(getPattern(soil.link, ''))
 
-            condition = [] + [unit]
-            c = ','.join(condition)
-            term.update({','.join([c,k]):v for k, v in getCount(bucket.head).items()})
-            term.update(mineBucket(bucket, support, condition, term))
-            pass
+    ##  2-term
+    queue = list(reversed(head[0]))
+    pattern = {}
+    for q in queue: 
+        
+        s = cutSoil(soil.link, q, support)
+        p = getPattern(s.link, q, support)
+        pattern.update(p)
+        term.update(p)
+        continue
 
+    ##  other-term
+    while(pattern!={}):
+
+        c = {}
+        for q in list(pattern.keys()):
+
+            s = cutSoil(soil.link, q, support)
+            p = getPattern(s.link, q, support)
+            c.update(p)
+            term.update(p)
+            continue
+        
+        pattern = c
+        pass
+    
+    item, count = [], []
+    for k,v in term.items():
+
+        item += [k]
+        count += [round(v/len(number),3)]
         continue
     
-    summary.update(term)
-    output = getSupport(summary, length)
-    return(output)
+    result ={'item':item, "count":count}
+    return(result)
 
 def writeResult(result, path):
 
@@ -295,18 +281,3 @@ def writeResult(result, path):
         pass
 
     return
-
-'''
-import time
-DATA_PATH = './inputs/2022-DM-release-testdata-2.data'
-SUP_MIN = 0.3
-CONF_MIN = 0.3
-
-OUT_PATH = './outputs/2022-DM-release-testdata-2.data_fptree.csv'
-start_time = time.time()
-result = runFptree(data_path=DATA_PATH, sup_min=SUP_MIN, conf_min=CONF_MIN)
-print(len(result['item']))
-finish_time = time.time()
-print("{} sec".format(round(finish_time - start_time, 2)))
-writeResult(result=result, path=OUT_PATH)
-'''

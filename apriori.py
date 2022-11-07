@@ -60,7 +60,6 @@ def getCount(head):
     count = {u:v for u, v in loop}
     return(count)
 
-
 def upgradeHead(table, head, support):
 
     chain = sum([u.split(",") for u in head['unit']], [])
@@ -177,6 +176,43 @@ def writeResult(result, path):
         pass
 
     return
+
+def getRule(result, confidence):
+    
+    rule = []
+    score = []
+    for i, c in zip(result['item'], result['count']):
+
+        l = len(i.split(','))
+        if(l==1): continue
+        else:
+            
+            for j, d in zip(result['item'], result['count']):
+                
+                left = set(sorted(i.split(',')))
+                right = set(sorted(j.split(',')))
+                union = set.union(left, right)
+                if(union==right and left!=right):
+
+                    a = left
+                    b = set.difference(right, left)
+                    if(round(d/c, 3)>=confidence):
+
+                        rule += ["{} -> {}".format(a, b)]
+                        score += [round(d/c, 3)]
+                        pass
+
+                    pass
+
+                continue                        
+
+            pass
+
+        continue
+    
+    print('confidence item: {}'.format(len(rule)))
+    output = rule, score
+    return(output)
 
 '''
 import time

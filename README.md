@@ -15,6 +15,6 @@ sup sec
 0.3 1.3
 
 apriori 
-sup sec 
-0.1 194  
+sup sec conf   item-pair
+0.1 194   0.1   6009
 0.3 3.17 -->

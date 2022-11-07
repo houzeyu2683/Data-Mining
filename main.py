@@ -17,9 +17,9 @@ if(__name__=='__main__'):
     DATA_PATH = args.dataset
     # DATA_PATH = './inputs/2022-DM-release-testdata-2.data'
     SUP_MIN = args.min_sup
-    # SUP_MIN = 0.3
+    # SUP_MIN = 0.1
     CONF_MIN = args.min_conf
-    # CONF_MIN = 0.3
+    # CONF_MIN = 0.1
     OUT_PATH = DATA_PATH.replace('inputs', 'outputs') + "_" + METHOD + ".csv"
     # OUT_PATH = './outputs/2022-DM-release-testdata-2.data_apriori.csv'
 
@@ -28,9 +28,10 @@ if(__name__=='__main__'):
         print("method: {}".format(METHOD))
         start_time = time.time()
         result = apriori.runApriori(data_path=DATA_PATH, sup_min=SUP_MIN, conf_min=CONF_MIN)
-        print("find {} item set".format(len(result['item'])))
         finish_time = time.time()
         print("{} sec".format(round(finish_time - start_time, 2)))
+        association = apriori.getRule(result=result, confidence=CONF_MIN)
+        print("find {} item set".format(len(result['item'])))
         apriori.writeResult(result=result, path=OUT_PATH)
         pass
     
