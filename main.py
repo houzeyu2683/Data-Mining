@@ -1,90 +1,52 @@
 
-import argparse
-import time
-import os
-
 import apriori
 import fptree
-
-def write(output, path='output.txt'):
-
-    iteration = list(output.values())
-    with open(path, 'w') as paper:
-            
-        title = ['freqset', 'support']
-        line = ','.join(title) + '\n'
-        paper.write(line)
-        for i in zip(*iteration):
-
-            line = ','.join([str(s) for s in i]) + '\n'
-            paper.write(line)
-            continue
-
-        pass
-
-    return
-
-if __name__ == "__main__":
+import argparse
+import time
+   
+if(__name__=='__main__'):
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--min_sup", help="min support", default=200, type=float)
-    parser.add_argument("--min_conf", help="min confidence", default=200, type=float)
-    parser.add_argument("--dataset", help="dataset", default='./inputs/2022-DM-release-testdata-2.data', type=str)
+    parser.add_argument("--method", help="method", default='apriori', type=str)
+    parser.add_argument("--dataset", help="dataset path", default='./inputs/example', type=str)
+    parser.add_argument("--min_sup", help="min support", default=0.1, type=float)
+    parser.add_argument("--min_conf", help="min confidence", default=0.1, type=float)
     args = parser.parse_args()
-    pass
+    METHOD = args.method
+    DATA_PATH = args.dataset
+    SUP_MIN = args.min_sup
+    CONF_MIN = args.min_conf
+    # METHOD = 'apriori'
+    # DATA_PATH = './inputs/2022-DM-release-testdata-2.data'
+    # SUP_MIN = 0.3
+    # CONF_MIN = 0.3
+    # OUT_PATH = DATA_PATH.replace('inputs', 'outputs') + "_" + METHOD + ".csv"
+    # OUT_PATH = './outputs/2022-DM-release-testdata-2.data_apriori.csv'
 
-    min_sup = args.min_sup
-    min_conf = args.min_conf
-    dataset = args.dataset
-    min_sup = 100
-    min_conf = 100
-    dataset = './inputs/ibm-2022.txt'
+    if(METHOD=='apriori'):
+
+        print("method: {}".format(METHOD))
+        start_time = time.time()
+        result = apriori.runApriori(data_path=DATA_PATH, sup_min=SUP_MIN, conf_min=CONF_MIN)
+        finish_time = time.time()
+        print("{} sec".format(round(finish_time - start_time, 2)))
+        print("find {} item set".format(len(result['item'])))
+        rule = apriori.getRule(result=result, confidence=CONF_MIN)
+        apriori.writeSupport(result=result, path=DATA_PATH.replace('inputs', 'outputs') + "_" + METHOD + '_support' + ".csv")
+        apriori.writeConfidence(rule=rule, path=DATA_PATH.replace('inputs', 'outputs') + "_" + METHOD + '_confidence' + ".csv")
+        pass
     
-    print('start apriori method')
-    dictionary = apriori.read(path=dataset)
-    # LEN = len(dictionary) ## 不該這樣搞
-    # threshold_sup = int(LEN*min_sup)
-    # threshold_conf = int(LEN*min_conf)
-    threshold_sup = min_sup
-    threshold_conf = min_conf
-    start_time = time.time()
-    apriori_engine = apriori.engine(support=threshold_sup, confidence=threshold_conf, limit=10)
-    apriori_engine.load(dictionary)
-    apriori_engine.scan()
-    finish_time = time.time()
-    apriori_engine.time = finish_time - start_time
-    print('finish apriori method: {}'.format(apriori_engine.time))
+    if(METHOD=='fptree'):
+        
+        print("method: {}".format(METHOD))
+        start_time = time.time()
+        result = fptree.runFptree(data_path=DATA_PATH, sup_min=SUP_MIN, conf_min=CONF_MIN)
+        finish_time = time.time()
+        print("{} sec".format(round(finish_time - start_time, 2)))
+        print("find {} item set".format(len(result['item'])))
+        rule = fptree.getRule(result=result, confidence=CONF_MIN)
+        fptree.writeSupport(result=result, path=DATA_PATH.replace('inputs', 'outputs') + "_" + METHOD + '_support' + ".csv")
+        fptree.writeConfidence(rule=rule, path=DATA_PATH.replace('inputs', 'outputs') + "_" + METHOD + '_confidence' + ".csv")
+        pass
+
     pass
-
-    ##  Store the hw ouput format.
-    apriori_output = {'freqset':[], 'support':[]}
-    loop = zip(apriori_engine.count['item'], apriori_engine.count['frequency'])
-    for i,f in loop:
-
-        apriori_output['freqset'] += ["{" + " ".join([str(i) for i in list(i)]) + "}"]
-        apriori_output['support'] += [f / apriori_engine.length]
-        continue
-    
-    write(apriori_output, path=dataset.replace('inputs', 'outputs') + '_appriori.csv')
-
-    print('start fptree method')
-    fptree_engine = fptree.Engine(path=dataset, support=threshold_sup, confidence=threshold_conf)
-    start_time = time.time()
-    fptree_engine.scan()
-    finish_time = time.time()
-    fptree_engine.time = finish_time - start_time
-    print('finish fptree method: {}'.format(fptree_engine.time))
-    pass
-
-    ##  Store the hw ouput format.
-    fptree_output = {'freqset':[], 'support':[]}
-    loop = zip(fptree_engine.count['item'], fptree_engine.count['frequency'])
-    for i,f in loop:
-
-        fptree_output['freqset'] += ["{" + " ".join([str(i) for i in list(i)]) + "}"]
-        fptree_output['support'] += [f / fptree_engine.length]
-        continue
-    
-    write(fptree_output, path=dataset.replace('inputs', 'outputs') + '_fptree.csv')
-    pass
-
